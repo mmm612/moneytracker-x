@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="AI-Powered レシート解析ツール - レシートを撮影するだけで支出を自動分類">
+    <meta name="keywords" content="家計簿,レシート解析,AI,支出管理,MoneyTracker">
+    <meta name="author" content="MoneyTracker X">
+    
+    <!-- PWA対応 -->
+    <meta name="theme-color" content="#0c0c0c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MoneyTracker X">
+    
+    <!-- アイコン -->
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzAwZDRmZiIvPgo8dGV4dCB4PSIxNiIgeT0iMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7igbk8L3RleHQ+Cjwvc3ZnPgo=">
+    
+    <title>MoneyTracker X - AI家計簿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00d4ff, #ff006e, #8338ec);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+            margin-top: 10px;
+            letter-spacing: 2px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #333;
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .upload-zone.dragover {
+            border-color: #ff006e;
+            background: rgba(255, 0, 110, 0.1);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .expense-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(10px);
+        }
+
+        .expense-category {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .expense-amount {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .processing-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo {
+                font-size: 2rem;
+            }
+            
+            .upload-zone {
+                padding: 40px 20px;
+            }
+            
+            .settings-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .modal {
+                padding: 20px;
+                margin: 20px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+
+        /* モバイル専用スタイル */
+        @media (max-width: 480px) {
+            .upload-zone {
+                padding: 30px 15px;
+                margin-bottom: 20px;
+            }
+            
+            .upload-icon {
+                font-size: 3rem;
+            }
+            
+            .upload-text {
+                font-size: 1.1rem;
+            }
+            
+            .expense-item {
+                padding: 12px;
+                flex-direction: column;
+                text-align: center;
+                gap: 5px;
+            }
+            
+            .expense-amount {
+                font-size: 1.2rem;
+                color: #00d4ff;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .modal-buttons {
+                flex-direction: column;
+            }
+            
+            .modal-btn {
+                width: 100%;
+            }
+        }
+
+        /* カメラアクセス用スタイル */
+        .camera-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .camera-btn {
+            background: linear-gradient(45deg, #ff006e, #8338ec);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 0, 110, 0.4);
+        }
+
+        /* ローディング改善 */
+        .processing-text {
+            font-size: 1.2rem;
+            margin-top: 10px;
+            animation: fadeInOut 2s infinite;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .category-food { border-left-color: #ff6b6b; }
+        .category-transport { border-left-color: #4ecdc4; }
+        .category-shopping { border-left-color: #45b7d1; }
+        .category-entertainment { border-left-color: #96ceb4; }
+        .category-utilities { border-left-color: #feca57; }
+        .category-other { border-left-color: #ff9ff3; }
+
+        .total-amount {
+            font-size: 2rem;
+            font-weight: 900;
+            text-align: center;
+            margin: 20px 0;
+            background: linear-gradient(45deg, #00d4ff, #ff006e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .settings-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .settings-btn {
+            background: linear-gradient(45deg, #333, #555);
+            color: #e0e0e0;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-btn:hover {
+            background: linear-gradient(45deg, #00d4ff, #8338ec);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        .api-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .api-status.connected {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .api-status.disconnected {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff4444;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-radius: 20px;
+            padding: 40px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(45deg, #00d4ff, #8338ec);
+            color: white;
+        }
+
+        .modal-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            color: #888;
+            border: 2px solid #555;
+        }
+
+        .modal-btn.secondary:hover {
+            color: #e0e0e0;
+            border-color: #777;
+        }
+
+        .help-text {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        .help-text a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">MoneyTracker X</h1>
+            <p class="subtitle">AI-Powered Expense Analyzer</p>
+            <div class="settings-container">
+                <button class="settings-btn" id="settingsBtn">⚙️ API設定</button>
+                <div class="api-status" id="apiStatus">❌ API未設定</div>
+            </div>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">レシートや明細書をドロップ</div>
+            <div class="upload-subtext">または下のボタンから選択</div>
+            
+            <!-- デスクトップ用ファイル選択 -->
+            <input type="file" class="file-input" id="fileInput" accept="image/*,text/csv,.csv" multiple>
+            
+            <!-- モバイル用カメラアクセス -->
+            <div style="margin-top: 20px;">
+                <button class="camera-btn" id="cameraBtn">📷 カメラで撮影</button>
+                <button class="camera-btn" id="galleryBtn" style="background: linear-gradient(45deg, #00d4ff, #8338ec);">🖼️ ギャラリーから選択</button>
+            </div>
+            <input type="file" class="camera-input" id="cameraInput" accept="image/*" capture="environment">
+            <input type="file" class="camera-input" id="galleryInput" accept="image/*">
+        </div>
+
+        <div class="processing" id="processing">
+            <div class="processing-spinner"></div>
+            <div class="processing-text">AI が画像を解析中...</div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="card">
+                <h3>📊 支出分析</h3>
+                <div class="total-amount" id="totalAmount">¥0</div>
+                <div id="expenseList"></div>
+            </div>
+            
+            <div class="card">
+                <h3>📈 カテゴリ別内訳</h3>
+                <div class="chart-container">
+                    <canvas id="expenseChart" width="300" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- API設定モーダル -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal">
+                <h3>🔑 OpenAI API 設定</h3>
+                <div class="form-group">
+                    <label for="apiKeyInput">APIキー</label>
+                    <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxx">
+                    <div class="help-text">
+                        APIキーは <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a> で取得できます<br>
+                        ローカルストレージに安全に保存されます
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn secondary" id="cancelBtn">キャンセル</button>
+                    <button class="modal-btn primary" id="saveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let expenseData = [];
+        let totalExpense = 0;
+        let apiKey = localStorage.getItem('openai_api_key') || '';
+
+        // DOM要素
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const cameraBtn = document.getElementById('cameraBtn');
+        const galleryBtn = document.getElementById('galleryBtn');
+        const cameraInput = document.getElementById('cameraInput');
+        const galleryInput = document.getElementById('galleryInput');
+        const processing = document.getElementById('processing');
+        const resultsSection = document.getElementById('resultsSection');
+        const expenseList = document.getElementById('expenseList');
+        const totalAmount = document.getElementById('totalAmount');
+        const chartCanvas = document.getElementById('expenseChart');
+        
+        // モーダル要素
+        const settingsBtn = document.getElementById('settingsBtn');
+        const apiStatus = document.getElementById('apiStatus');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveBtn = document.getElementById('saveBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // 初期化
+        updateApiStatus();
+
+        // イベントリスナー
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', handleDragOver);
+        uploadZone.addEventListener('dragleave', handleDragLeave);
+        uploadZone.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // モバイル対応
+        cameraBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cameraInput.click();
+        });
+        galleryBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            galleryInput.click();
+        });
+        cameraInput.addEventListener('change', handleFileSelect);
+        galleryInput.addEventListener('change', handleFileSelect);
+        
+        // モーダル関連
+        settingsBtn.addEventListener('click', openModal);
+        cancelBtn.addEventListener('click', closeModal);
+        saveBtn.addEventListener('click', saveApiKey);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        // ドラッグ&ドロップ処理
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            processFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            processFiles(files);
+        }
+
+        // ファイル処理
+        function processFiles(files) {
+            if (files.length === 0) return;
+
+            // APIキーチェック
+            if (!apiKey) {
+                alert('⚠️ APIキーが設定されていません。設定ボタンからAPIキーを入力してください。');
+                return;
+            }
+
+            showProcessing();
+            
+            // 画像プレビュー表示
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    showImagePreview(file);
+                    // 実際のAI解析を実行
+                    analyzeReceiptWithAI(file);
+                    return; // 最初の画像のみ処理
+                }
+            }
+
+            // 画像がない場合はデモデータ
+            setTimeout(() => {
+                const demoData = generateDemoData();
+                displayResults(demoData);
+                hideProcessing();
+            }, 2000);
+        }
+
+        // AI解析機能 - Vercel プロキシ経由
+        async function analyzeReceiptWithAI(imageFile) {
+            try {
+                // 画像をBase64に変換
+                const base64Image = await fileToBase64(imageFile);
+                
+                // 現在のドメインを取得してプロキシURLを動的に設定
+                const baseUrl = window.location.origin;
+                const proxyUrl = `${baseUrl}/api/analyze-receipt`;
+                
+                console.log('プロキシURL:', proxyUrl);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        imageBase64: base64Image
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'レスポンス解析エラー' }));
+                    throw new Error(`プロキシエラー (${response.status}): ${errorData.error}`);
+                }
+
+                const result = await response.json();
+                console.log('AI解析結果:', result);
+                
+                if (result.success && result.data) {
+                    const formattedData = formatAIResponse(result.data);
+                    displayResults(formattedData);
+                    
+                    // 成功メッセージ
+                    const successMsg = document.createElement('div');
+                    successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,255,0,0.1);color:#00ff00;padding:15px;border-radius:10px;border:1px solid rgba(0,255,0,0.3);z-index:1000;';
+                    successMsg.textContent = '✅ AI解析完了！';
+                    document.body.appendChild(successMsg);
+                    setTimeout(() => successMsg.remove(), 3000);
+                } else {
+                    throw new Error(result.error || '不明なエラー');
+                }
+                
+            } catch (error) {
+                console.error('AI解析エラー:', error);
+                
+                // エラー種別に応じたメッセージ
+                let errorMessage = '';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage = '❌ プロキシサーバーに接続できません。\n\n・Vercelデプロイが完了していますか？\n・APIキーが正しく設定されていますか？\n\n今はデモモードで表示します。';
+                } else if (error.message.includes('404')) {
+                    errorMessage = '❌ プロキシエンドポイントが見つかりません。\n\napi/analyze-receipt.js がアップロードされていることを確認してください。\n\n今はデモモードで表示します。';
+                } else if (error.message.includes('401') || error.message.includes('403')) {
+                    errorMessage = '❌ OpenAI APIキーが無効です。\n\n設定画面で正しいAPIキー（sk-で始まる）を入力してください。\n\n今はデモモードで表示します。';
+                } else {
+                    errorMessage = `❌ AI解析エラー: ${error.message}\n\n今はデモモードで表示します。`;
+                }
+                
+                alert(errorMessage);
+                
+                // フォールバック: デモデータを使用
+                const demoData = generateDemoData();
+                displayResults(demoData);
+            } finally {
+                hideProcessing();
+            }
+        }
+
+        // Base64変換
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // AI応答フォーマット
+        function formatAIResponse(aiData) {
+            const categoryIcons = {
+                '食費': '🍜',
+                '交通費': '🚇', 
+                'ショッピング': '🛍️',
+                '娯楽': '🎬',
+                '光熱費': '💡',
+                'その他': '📝'
+            };
+            
+            const categoryClasses = {
+                '食費': 'category-food',
+                '交通費': 'category-transport',
+                'ショッピング': 'category-shopping', 
+                '娯楽': 'category-entertainment',
+                '光熱費': 'category-utilities',
+                'その他': 'category-other'
+            };
+
+            return aiData.map(item => ({
+                category: item.category,
+                amount: item.amount,
+                icon: categoryIcons[item.category] || '📝',
+                class: categoryClasses[item.category] || 'category-other',
+                items: item.items || []
+            }));
+        }
+
+        // モーダル機能
+        function openModal() {
+            apiKeyInput.value = apiKey;
+            modalOverlay.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modalOverlay.style.display = 'none';
+            apiKeyInput.value = '';
+        }
+
+        function saveApiKey() {
+            const newApiKey = apiKeyInput.value.trim();
+            if (newApiKey && newApiKey.startsWith('sk-')) {
+                apiKey = newApiKey;
+                localStorage.setItem('openai_api_key', apiKey);
+                updateApiStatus();
+                closeModal();
+                alert('✅ APIキーが保存されました！');
+            } else {
+                alert('❌ 有効なAPIキーを入力してください (sk-で始まる文字列)');
+            }
+        }
+
+        function updateApiStatus() {
+            if (apiKey) {
+                apiStatus.textContent = '✅ API接続済み';
+                apiStatus.className = 'api-status connected';
+            } else {
+                apiStatus.textContent = '❌ API未設定';
+                apiStatus.className = 'api-status disconnected';
+            }
+        }
+
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'preview-image';
+                uploadZone.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showProcessing() {
+            processing.style.display = 'block';
+            resultsSection.style.display = 'none';
+        }
+
+        function hideProcessing() {
+            processing.style.display = 'none';
+            resultsSection.style.display = 'grid';
+        }
+
+        // デモデータ生成
+        function generateDemoData() {
+            return [
+                { category: '食費', amount: 8500, icon: '🍜', class: 'category-food' },
+                { category: '交通費', amount: 3200, icon: '🚇', class: 'category-transport' },
+                { category: 'ショッピング', amount: 12000, icon: '🛍️', class: 'category-shopping' },
+                { category: '娯楽', amount: 4800, icon: '🎬', class: 'category-entertainment' },
+                { category: '光熱費', amount: 6500, icon: '💡', class: 'category-utilities' },
+                { category: 'その他', amount: 2300, icon: '📝', class: 'category-other' }
+            ];
+        }
+
+        // 結果表示
+        function displayResults(data) {
+            expenseData = data;
+            totalExpense = data.reduce((sum, item) => sum + item.amount, 0);
+            
+            // 合計金額表示
+            totalAmount.textContent = `¥${totalExpense.toLocaleString()}`;
+            
+            // 支出リスト表示
+            expenseList.innerHTML = '';
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `expense-item ${item.class}`;
+                div.innerHTML = `
+                    <div class="expense-category">
+                        <span>${item.icon}</span>
+                        <span>${item.category}</span>
+                    </div>
+                    <div class="expense-amount">¥${item.amount.toLocaleString()}</div>
+                `;
+                expenseList.appendChild(div);
+            });
+
+            // チャート描画
+            drawChart(data);
+        }
+
+        // チャート描画
+        function drawChart(data) {
+            const ctx = chartCanvas.getContext('2d');
+            const centerX = chartCanvas.width / 2;
+            const centerY = chartCanvas.height / 2;
+            const radius = 100;
+
+            // キャンバスクリア
+            ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
+            let currentAngle = -Math.PI / 2;
+
+            data.forEach((item, index) => {
+                const sliceAngle = (item.amount / totalExpense) * 2 * Math.PI;
+                
+                // スライス描画
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // ラベル描画
+                const labelAngle = currentAngle + sliceAngle / 2;
+                const labelX = centerX + Math.cos(labelAngle) * (radius + 20);
+                const labelY = centerY + Math.sin(labelAngle) * (radius + 20);
+                
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(item.icon, labelX, labelY);
+
+                currentAngle += sliceAngle;
+            });
+        }
+
+        // 初期化時のアニメーション
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
