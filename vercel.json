@@ -1,8 +1,7 @@
 {
-  "version": 2,
   "functions": {
     "api/analyze-receipt.js": {
-      "runtime": "nodejs18.x"
+      "runtime": "@vercel/node@3.0.0"
     }
   },
   "headers": [
@@ -22,12 +21,6 @@
           "value": "Content-Type, Authorization"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/index.html"
     }
   ]
 }
