@@ -25,6 +25,20 @@ export default async function handler(req, res) {
       res.status(400).json({ error: 'APIキーまたは画像データが不足しています' });
       return;
     }
+    
+    // 画像形式チェックを追加
+if (!imageBase64.startsWith('data:image/')) {
+  res.status(400).json({ error: 'Invalid image format' });
+  return;
+}
+
+const validFormats = ['data:image/png', 'data:image/jpeg', 'data:image/jpg', 'data:image/gif', 'data:image/webp'];
+const isValidFormat = validFormats.some(format => imageBase64.startsWith(format));
+
+if (!isValidFormat) {
+  res.status(400).json({ error: 'Unsupported image format. Please use PNG, JPEG, GIF, or WEBP.' });
+  return;
+}
 
     // OpenAI APIを呼び出し
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -62,9 +76,9 @@ export default async function handler(req, res) {
               金額は数字のみ、商品名は配列で返してください。`
             },
             {
-              type: "image_url", 
-              image_url: {
-                url: imageBase64
+              type: image_url: {
+                    url: imageBase64,
+                    detail: "low"
               }
             }
           ]
